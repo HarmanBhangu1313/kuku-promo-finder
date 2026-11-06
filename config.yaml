@@ -1,0 +1,36 @@
+# ---- Swap the model here. Any OpenAI-compatible endpoint works. ----
+# Check the provider's docs for the current model name before running.
+llm:
+  # Google Gemini (free tier), OpenAI-compatible endpoint
+  base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+  model: gemini-3.5-flash-lite
+  api_key_env: GEMINI_API_KEY
+  temperature: 0.3
+  sleep_between_calls: 4      # stay under free-tier rate limits
+
+  # Groq:       base_url: https://api.groq.com/openai/v1        api_key_env: GROQ_API_KEY
+  # OpenRouter: base_url: https://openrouter.ai/api/v1          api_key_env: OPENROUTER_API_KEY
+  # Ollama:     base_url: http://localhost:11434/v1             api_key_env: ""  (no key)
+
+mode: llm          # llm | heuristic | both
+window: 2          # episodes per LLM call; 2 lets it stitch across adjacent episodes
+cold_viewer: true  # second LLM pass that sees only the clip
+
+promo:
+  min_len: 20
+  max_len: 60
+  per_window: 5
+  top_k: 10
+  max_per_episode: 2
+
+weights:           # ranking weights - these are product decisions, tune them
+  hook: 0.35
+  cliffhanger: 0.35
+  standalone: 0.2
+  early_episode: 0.1
+  spoiler_penalty: 0.15
+
+episode_ending:    # your story rule, edit freely
+  tail_seconds: 25            # the "last minutes" of an episode = its final N seconds
+  resolution_from_episode: 48 # episodes >= this are the finale stretch: happy/resolved endings allowed
+  tail_bonus: 0.4             # ranking weight for a promo that ends inside the final tail of an early episode

@@ -1,0 +1,21 @@
+# Confidential story screenplays & raw run artifacts
+data/
+outputs/
+data/*.txt
+*.txt
+!requirements.txt
+
+# Secrets & local config
+.streamlit/secrets.toml
+.env
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
