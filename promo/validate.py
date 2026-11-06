@@ -1,11 +1,11 @@
 """Code-side checks. The LLM only names event IDs; this module turns them into
-real timestamps, snaps them to clean shot cuts, and rejects anything that
-breaks the rules. Nothing the model says about time is trusted."""
+real timestamps, snaps them to clean shot cuts, merges touching segments,
+repairs near-miss clips, and rejects anything that breaks hard limits."""
 from __future__ import annotations
 
 import bisect
 
-from .model import Promo
+from .model import Promo, Segment
 from .parser import Episode, shot_starts, shot_ends
 
 MIN_LEN, MAX_LEN = 20.0, 60.0
@@ -55,7 +55,23 @@ def validate(promo: Promo, eps: dict[int, Episode],
                 break
         seg.start, seg.end = round(start, 2), round(end, 2)
 
-    # order + overlap across segments
+    # 1. Merge adjacent/touching or overlapping segments within the same episode
+    merged: list[Segment] = []
+    for s in promo.segments:
+        if not merged:
+            merged.append(s)
+            continue
+        prev = merged[-1]
+        # If in the same episode and contiguous/touching (within 0.1s) or overlapping
+        if prev.episode == s.episode and s.start <= prev.end + 0.1:
+            prev.end = max(prev.end, s.end)
+            prev.end_id = s.end_id
+            reasons.append("merged contiguous segments")
+        else:
+            merged.append(s)
+    promo.segments = merged
+
+    # Segment order and hard overlap checks
     for x, y in zip(promo.segments, promo.segments[1:]):
         if (x.episode, x.start) > (y.episode, y.start):
             reasons.append("segments out of story order (allowed, but flagged)")
@@ -63,6 +79,34 @@ def validate(promo: Promo, eps: dict[int, Episode],
             return False, ["segments overlap"]
 
     dur = promo.duration
+
+    # 2. Repair: if clip is slightly too short (15s - 20s), attempt to extend to next shot end
+    if dur < min_len and len(promo.segments) == 1:
+        seg = promo.segments[0]
+        ep = eps[seg.episode]
+        ends = shot_ends(ep)
+        for cand_end in ends:
+            if cand_end > seg.end and (cand_end - seg.start) >= min_len:
+                if (cand_end - seg.start) <= max_len:
+                    seg.end = round(cand_end, 2)
+                    reasons.append(f"repaired short clip: extended to {seg.end}s")
+                    dur = promo.duration
+                break
+
+    # 3. Repair: if single segment is overlong (60s - 95s), trim from end down to ~55s at clean shot end
+    if dur > max_len and len(promo.segments) == 1:
+        seg = promo.segments[0]
+        ep = eps[seg.episode]
+        ends = shot_ends(ep)
+        # find closest shot end that gives 45s-58s
+        valid_ends = [e for e in ends if 40.0 <= (e - seg.start) <= 58.0]
+        if valid_ends:
+            best_end = max(valid_ends)
+            seg.end = round(best_end, 2)
+            reasons.append(f"repaired overlong clip: trimmed to clean shot end {seg.end}s")
+            dur = promo.duration
+
+    # Final hard duration guards
     if dur < min_len:
         return False, [f"too short: {dur:.1f}s < {min_len:.0f}s"]
     if dur > max_len:

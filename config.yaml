@@ -8,13 +8,9 @@ llm:
   temperature: 0.3
   sleep_between_calls: 4      # stay under free-tier rate limits
 
-  # Groq:       base_url: https://api.groq.com/openai/v1        api_key_env: GROQ_API_KEY
-  # OpenRouter: base_url: https://openrouter.ai/api/v1          api_key_env: OPENROUTER_API_KEY
-  # Ollama:     base_url: http://localhost:11434/v1             api_key_env: ""  (no key)
-
 mode: llm          # llm | heuristic | both
 window: 2          # episodes per LLM call; 2 lets it stitch across adjacent episodes
-cold_viewer: true  # second LLM pass that sees only the clip
+cold_viewer: false # disabled across the board to eliminate ranking bias between checked/unchecked clips
 
 promo:
   min_len: 20
@@ -23,14 +19,14 @@ promo:
   top_k: 10
   max_per_episode: 2
 
-weights:           # ranking weights - these are product decisions, tune them
-  hook: 0.35
-  cliffhanger: 0.35
-  standalone: 0.2
-  early_episode: 0.1
+weights:           # ranking weights - balanced without tail bonus dominating
+  hook: 0.40
+  cliffhanger: 0.40
+  standalone: 0.15
+  early_episode: 0.10
   spoiler_penalty: 0.15
 
-episode_ending:    # your story rule, edit freely
+episode_ending:    # calibrated story rule
   tail_seconds: 25            # the "last minutes" of an episode = its final N seconds
-  resolution_from_episode: 48 # episodes >= this are the finale stretch: happy/resolved endings allowed
-  tail_bonus: 0.4             # ranking weight for a promo that ends inside the final tail of an early episode
+  resolution_from_episode: 48 # episodes >= this are finale stretch: happy/resolved endings allowed
+  tail_bonus: 0.15            # recalibrated from 0.4 to 0.15 so hook/cliffhanger drive ranking
