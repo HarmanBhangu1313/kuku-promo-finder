@@ -1,5 +1,9 @@
 # 🎬 Microdrama Promo Finder (Kuku Assignment - Problem 1)
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://kuku-promo-finder-mtdgxd5ar2pezuuqyi59ev.streamlit.app/)
+> 🌐 **Live Demo:** [https://kuku-promo-finder-mtdgxd5ar2pezuuqyi59ev.streamlit.app/](https://kuku-promo-finder-mtdgxd5ar2pezuuqyi59ev.streamlit.app/)
+
+
 An automated AI-powered tool that analyzes episodic vertical microdrama screenplays and discovers, validates, and ranks high-converting **20–60 second promo clips** for platforms like TikTok, YouTube Shorts, and Instagram Reels.
 
 ---
